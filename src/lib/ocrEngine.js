@@ -29,30 +29,51 @@ export class OCREngine {
     return reading;
   }
 
+  /** Normalize common OCR misreads before pattern matching. */
+  _normalizeOCR(raw) {
+    return raw
+      .replace(/(\d)[,،](\d)/g, '$1/$2')         // comma → slash (European monitors)
+      .replace(/(?<=\d)[oO]|[oO](?=\d)/g, '0')  // O adjacent to digit → 0
+      .replace(/(?<=\d)[IlL]|[IlL](?=\d)/g, '1') // l/I/L adjacent to digit → 1
+      .replace(/\bS(\d{1,2})\b/g, '5$1');        // S + 1-2 digits → 5… (OCR artefact)
+  }
+
+  /** Validate candidate pair; swap if inverted; return null if equal. */
+  _validate(s, d, p) {
+    if (s > d) return { systolic: s, diastolic: d, pulse: p ?? null };
+    if (d > s) return { systolic: d, diastolic: s, pulse: p ?? null }; // swap recovery
+    return null;
+  }
+
   extractBPReading(text) {
-    // Pattern 1: "SYS: 120 DIA: 80 PULSE: 72" (labelled format)
-    const p1 = /SYS[:\s]*(\d{2,3}).*?DIA[:\s]*(\d{2,3}).*?(?:PULSE|PUL|P)[:\s]*(\d{2,3})/i;
-    let m = text.match(p1);
-    if (m) return { systolic: +m[1], diastolic: +m[2], pulse: +m[3] };
+    const t = this._normalizeOCR(text.toUpperCase());
 
-    // Pattern 2: "120/80 72" or "120/80 72bpm"
-    const p2 = /(\d{2,3})\s*\/\s*(\d{2,3})\s+(\d{2,3})/;
-    m = text.match(p2);
-    if (m) return { systolic: +m[1], diastolic: +m[2], pulse: +m[3] };
+    // Pattern 1: SYS/DIA labels — pulse OPTIONAL
+    const p1 = /SYS[:\s]*(\d{2,3})[\s\S]{0,30}DIA[:\s]*(\d{2,3})(?:[\s\S]{0,30}(?:PULSE|PUL|P)[:\s]*(\d{2,3}))?/i;
+    let m = t.match(p1);
+    if (m) { const r = this._validate(+m[1], +m[2], m[3] ? +m[3] : null); if (r) return r; }
 
-    // Pattern 3: "BP 120/80 HR 72"
-    const p3 = /BP[:\s]*(\d{2,3})\s*\/\s*(\d{2,3}).*?(?:HR|HEART\s*RATE|PULSE)[:\s]*(\d{2,3})/i;
-    m = text.match(p3);
-    if (m) return { systolic: +m[1], diastolic: +m[2], pulse: +m[3] };
+    // Pattern 3: BP/HR labels (checked before generic slash to capture HR pulse)
+    const p3 = /BP[:\s]*(\d{2,3})\s*\/\s*(\d{2,3})(?:[\s\S]{0,30}(?:HR|HEART\s*RATE|PULSE)[:\s]*(\d{2,3}))?/i;
+    m = t.match(p3);
+    if (m) { const r = this._validate(+m[1], +m[2], m[3] ? +m[3] : null); if (r) return r; }
 
-    // Pattern 4: Sequential 2-3 digit numbers (fallback)
-    const nums = text.match(/\d{2,3}/g);
-    if (nums && nums.length >= 2) {
-      return {
-        systolic:  +nums[0],
-        diastolic: +nums[1],
-        pulse:     nums[2] ? +nums[2] : null,
-      };
+    // Pattern 2: generic slash format — pulse OPTIONAL (after P3 to avoid eating HR value)
+    const p2 = /(\d{2,3})\s*\/\s*(\d{2,3})(?:\s+(\d{2,3}))?/;
+    m = t.match(p2);
+    if (m) { const r = this._validate(+m[1], +m[2], m[3] ? +m[3] : null); if (r) return r; }
+
+    // Pattern 4: smarter numeric fallback — range-guarded to avoid noise
+    const tokens = [...t.matchAll(/\b(\d{2,3})\b/g)].map(x => +x[1]);
+    const sysIdx = tokens.findIndex(n => n >= 90 && n <= 250);
+    if (sysIdx !== -1) {
+      const sys  = tokens[sysIdx];
+      const rest = tokens.slice(sysIdx + 1);
+      const dia  = rest.find(n => n >= 40 && n <= 140 && n < sys);
+      if (dia !== undefined) {
+        const pul = rest.slice(rest.indexOf(dia) + 1).find(n => n >= 40 && n <= 200);
+        return { systolic: sys, diastolic: dia, pulse: pul ?? null };
+      }
     }
 
     return null;

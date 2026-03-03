@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, RotateCcw, X } from 'lucide-react';
+import { Camera, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ocrEngine } from '@/lib/ocrEngine';
