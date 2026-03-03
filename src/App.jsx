@@ -53,7 +53,7 @@ function AuthenticatedApp({ logout }) {
 }
 
 function AppInner() {
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, login, logout, register } = useAuth();
 
   if (loading) {
     return (
@@ -64,7 +64,7 @@ function AppInner() {
   }
 
   if (!user) {
-    return <LoginPage onLogin={login} />;
+    return <LoginPage onLogin={login} onRegister={register} />;
   }
 
   return <AuthenticatedApp logout={logout} />;

@@ -11,8 +11,21 @@ export function useAuth() {
       .catch(() => { setUser(null); setLoading(false); });
   }, []);
 
-  const login  = (email, pwd) => auth.login(email, pwd).then(u => { setUser(u); return u; });
-  const logout = ()           => auth.logout().then(() => setUser(null));
+  const login = (email, pwd) =>
+    auth.loginViaEmailPassword(email, pwd).then(res => {
+      setUser(res.user);
+      return res.user;
+    });
 
-  return { user, loading, login, logout };
+  const register = (email, pwd) =>
+    auth.register({ email, password: pwd }).then(() =>
+      auth.loginViaEmailPassword(email, pwd).then(res => {
+        setUser(res.user);
+        return res.user;
+      })
+    );
+
+  const logout = () => auth.logout().then(() => setUser(null));
+
+  return { user, loading, login, logout, register };
 }

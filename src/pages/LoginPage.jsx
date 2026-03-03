@@ -3,7 +3,8 @@ import HeartLogo from '@/components/HeartLogo';
 import { Button } from '@/components/ui/button';
 import { Input }  from '@/components/ui/input';
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, onRegister }) {
+  const [mode,  setMode]  = useState('login'); // 'login' | 'register'
   const [email, setEmail] = useState('');
   const [pwd,   setPwd]   = useState('');
   const [error, setError] = useState('');
@@ -14,12 +15,21 @@ export default function LoginPage({ onLogin }) {
     setBusy(true);
     setError('');
     try {
-      await onLogin(email, pwd);
+      if (mode === 'login') {
+        await onLogin(email, pwd);
+      } else {
+        await onRegister(email, pwd);
+      }
     } catch (err) {
-      setError(err?.message || 'Login failed. Please check your credentials.');
+      setError(err?.message || (mode === 'login' ? 'Login failed. Please check your credentials.' : 'Registration failed. Try a different email.'));
     } finally {
       setBusy(false);
     }
+  };
+
+  const switchMode = () => {
+    setMode(m => m === 'login' ? 'register' : 'login');
+    setError('');
   };
 
   return (
@@ -56,7 +66,7 @@ export default function LoginPage({ onLogin }) {
               value={pwd}
               onChange={e => setPwd(e.target.value)}
               required
-              autoComplete="current-password"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             />
           </div>
 
@@ -71,11 +81,25 @@ export default function LoginPage({ onLogin }) {
             className="w-full bg-black hover:bg-gray-800 text-white h-11 text-sm font-semibold"
             disabled={busy}
           >
-            {busy ? 'Signing in…' : 'Sign In'}
+            {busy
+              ? (mode === 'login' ? 'Signing in…' : 'Creating account…')
+              : (mode === 'login' ? 'Sign In' : 'Create Account')}
           </Button>
         </form>
 
-        <p className="text-xs text-gray-400 text-center mt-8">
+        {/* Mode toggle */}
+        <p className="text-sm text-center text-gray-500 mt-6">
+          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          <button
+            type="button"
+            onClick={switchMode}
+            className="text-gray-900 font-semibold hover:underline"
+          >
+            {mode === 'login' ? 'Create one' : 'Sign in'}
+          </button>
+        </p>
+
+        <p className="text-xs text-gray-400 text-center mt-6">
           Your health data is private and encrypted.
         </p>
       </div>
