@@ -4,3 +4,4 @@ dist
 .app.jsonc
 .env
 .env.local
+.mcp.json
