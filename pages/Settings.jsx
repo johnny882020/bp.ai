@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useBPReadings } from '@/hooks/useBPReadings';
 import ExportData from '@/components/bp/ExportData';
-import { Info, BookOpen, AlertTriangle, LogOut } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, LogOut, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input }  from '@/components/ui/input';
 
 const CATEGORIES = [
   { name: 'Normal',              range: '< 120/80 mmHg',      color: '#16a34a', bg: '#dcfce7', desc: 'Maintain healthy habits.' },
@@ -63,6 +65,9 @@ export default function Settings({ onLogout }) {
         </p>
       </div>
 
+      {/* Enhanced Scanning */}
+      <ApiKeyCard />
+
       {/* Logout */}
       {onLogout && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
@@ -83,6 +88,64 @@ export default function Settings({ onLogout }) {
 
       {/* Version */}
       <p className="text-xs text-center text-slate-400">BP.ai v1.0 · Powered by Base44</p>
+    </div>
+  );
+}
+
+function ApiKeyCard() {
+  const [key,   setKey]   = useState(() => localStorage.getItem('bp_anthropic_key') || '');
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    if (key.trim()) {
+      localStorage.setItem('bp_anthropic_key', key.trim());
+    } else {
+      localStorage.removeItem('bp_anthropic_key');
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleClear = () => {
+    localStorage.removeItem('bp_anthropic_key');
+    setKey('');
+    setSaved(false);
+  };
+
+  const isActive = !!localStorage.getItem('bp_anthropic_key');
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+        <Zap className="w-4 h-4 text-amber-500" /> Enhanced Scanning{' '}
+        {isActive && <span className="text-xs font-normal text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Active</span>}
+      </h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Provide your Anthropic API key to use Claude AI for more accurate BP monitor photo scanning.
+        Your key is stored only on this device and never sent to our servers.
+      </p>
+      <div className="flex gap-2">
+        <Input
+          type="password"
+          value={key}
+          onChange={e => setKey(e.target.value)}
+          placeholder="sk-ant-..."
+          className="flex-1 font-mono text-sm"
+        />
+        <Button onClick={handleSave} className="bg-black hover:bg-gray-800 text-white shrink-0">
+          {saved ? '✓ Saved' : 'Save'}
+        </Button>
+        {isActive && (
+          <Button variant="outline" onClick={handleClear} className="shrink-0 text-red-600 border-red-200 hover:bg-red-50">
+            Clear
+          </Button>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mt-2">
+        Get a free API key at{' '}
+        <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer"
+           className="underline hover:text-gray-600">console.anthropic.com</a>
+      </p>
     </div>
   );
 }

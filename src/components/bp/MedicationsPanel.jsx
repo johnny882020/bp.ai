@@ -8,7 +8,7 @@ import { useMedications } from '@/hooks/useMedications';
 
 export default function MedicationsPanel() {
   const { medications, isLoading, createMutation, updateMutation, deleteMutation } = useMedications();
-  const [showAdd, setShowAdd] = useState(false);
+  const [showAdd,   setShowAdd]   = useState(false);
   const [confirmId, setConfirmId] = useState(null);
 
   const active   = medications.filter(m => m.active);
@@ -27,7 +27,7 @@ export default function MedicationsPanel() {
 
       {!isLoading && !medications.length && (
         <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 text-sm">
-          No medications added yet.
+          No medications added yet. Tap <strong>Add</strong> to track your BP medications.
         </div>
       )}
 
@@ -68,7 +68,10 @@ export default function MedicationsPanel() {
       <AddMedDialog
         open={showAdd}
         onOpenChange={setShowAdd}
-        onSave={(data) => { createMutation.mutate(data); setShowAdd(false); }}
+        onSave={async (data) => {
+          await createMutation.mutateAsync(data);
+          setShowAdd(false);
+        }}
         isPending={createMutation.isPending}
       />
     </div>
@@ -113,16 +116,23 @@ function AddMedDialog({ open, onOpenChange, onSave, isPending }) {
   const [name,      setName]      = useState('');
   const [dosage,    setDosage]    = useState('');
   const [frequency, setFrequency] = useState('Daily');
+  const [error,     setError]     = useState('');
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) return;
-    onSave({ name: name.trim(), dosage: dosage.trim() || undefined, frequency, active: true });
-    setName(''); setDosage(''); setFrequency('Daily');
+    setError('');
+    try {
+      await onSave({ name: name.trim(), dosage: dosage.trim() || undefined, frequency, active: true });
+      // Reset only on success (onSave closes the dialog)
+      setName(''); setDosage(''); setFrequency('Daily');
+    } catch (e) {
+      setError(e?.message || 'Failed to save medication. Please try again.');
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
+      <DialogContent onClose={() => { onOpenChange(false); setError(''); }}>
         <DialogHeader><DialogTitle>Add Medication</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div>
@@ -141,8 +151,15 @@ function AddMedDialog({ open, onOpenChange, onSave, isPending }) {
               ))}
             </Select>
           </div>
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>
+          )}
+
           <div className="flex gap-3">
-            <Button variant="secondary" className="flex-1" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button variant="secondary" className="flex-1" onClick={() => { onOpenChange(false); setError(''); }}>
+              Cancel
+            </Button>
             <Button className="flex-1" onClick={handleSave} disabled={!name.trim() || isPending}>
               {isPending ? 'Saving…' : 'Save'}
             </Button>

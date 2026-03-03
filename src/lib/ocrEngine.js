@@ -11,12 +11,21 @@ export class OCREngine {
    * @returns {Promise<{ systolic: number, diastolic: number, pulse: number|null }>}
    */
   async processImage(imageSource, onProgress) {
-    const result = await Tesseract.recognize(imageSource, 'eng', {
+    // Preprocess: grayscale + contrast boost to help Tesseract read LCD displays
+    const preprocessed = await this._preprocessImage(imageSource);
+
+    const result = await Tesseract.recognize(preprocessed, 'eng', {
       logger: (m) => {
         if (m.status === 'recognizing text' && onProgress) {
           onProgress(Math.round(m.progress * 100));
         }
       },
+      // Restrict recognized characters to digits and common BP separators
+      tessedit_char_whitelist: '0123456789/:() \n',
+      // PSM 6 = uniform block of text (best for BP displays)
+      tessedit_pageseg_mode: '6',
+      // Override DPI to 150 — BP monitor photos are typically high-DPI
+      user_defined_dpi: '150',
     });
 
     const text = result.data.text.toUpperCase();
@@ -27,6 +36,41 @@ export class OCREngine {
     }
 
     return reading;
+  }
+
+  /**
+   * Preprocess the image for better OCR accuracy:
+   * converts to grayscale and applies a 1.5× contrast boost.
+   * Falls back to the original source in non-browser environments (Node / tests).
+   */
+  async _preprocessImage(imageSource) {
+    if (typeof document === 'undefined') return imageSource; // Node / test environment
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas  = document.createElement('canvas');
+        canvas.width  = img.naturalWidth  || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = imageData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          // Grayscale (luminance formula)
+          const gray = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+          // 1.5× contrast boost around midpoint 128
+          const boosted = Math.min(255, Math.max(0, Math.round((gray - 128) * 1.5 + 128)));
+          d[i] = d[i + 1] = d[i + 2] = boosted;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => resolve(imageSource); // Fallback on error
+      img.src = typeof imageSource === 'string' ? imageSource : URL.createObjectURL(imageSource);
+    });
   }
 
   /** Normalize common OCR misreads before pattern matching. */
