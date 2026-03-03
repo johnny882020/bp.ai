@@ -1,6 +1,4 @@
 import React from 'react';
-import { base44 } from '@/api/base44Client';
-import { motion } from 'framer-motion';
 import { Heart, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useBPReadings } from '@/hooks/useBPReadings';
