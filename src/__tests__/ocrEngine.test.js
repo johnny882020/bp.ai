@@ -128,3 +128,33 @@ describe('Edge cases', () => {
     expect(ext('95/65')).toEqual({ systolic: 95, diastolic: 65, pulse: null });
   });
 });
+
+// ---------------------------------------------------------------------------
+// OCR decimal normalization
+// ---------------------------------------------------------------------------
+describe('OCR decimal normalization', () => {
+  it('truncates decimal readings ("120.5/80.3" → 120/80)', () => {
+    expect(ext('120.5/80.3')).toEqual({ systolic: 120, diastolic: 80, pulse: null });
+  });
+
+  it('truncates decimals with pulse ("120.5/80.3 72.0")', () => {
+    expect(ext('120.5/80.3 72.0')).toEqual({ systolic: 120, diastolic: 80, pulse: 72 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Pattern 5 — space-separated format
+// ---------------------------------------------------------------------------
+describe('Pattern 5 (space-separated)', () => {
+  it('extracts "130  85  72" with double-space separator', () => {
+    expect(ext('130  85  72')).toEqual({ systolic: 130, diastolic: 85, pulse: 72 });
+  });
+
+  it('extracts "118  76" without pulse', () => {
+    expect(ext('118  76')).toEqual({ systolic: 118, diastolic: 76, pulse: null });
+  });
+
+  it('handles tab-separated values (tabs count as \\s)', () => {
+    expect(ext('125\t\t82')).toEqual({ systolic: 125, diastolic: 82, pulse: null });
+  });
+});

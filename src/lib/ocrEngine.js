@@ -32,10 +32,11 @@ export class OCREngine {
   /** Normalize common OCR misreads before pattern matching. */
   _normalizeOCR(raw) {
     return raw
-      .replace(/(\d)[,،](\d)/g, '$1/$2')         // comma → slash (European monitors)
-      .replace(/(?<=\d)[oO]|[oO](?=\d)/g, '0')  // O adjacent to digit → 0
+      .replace(/(\d)[,،](\d)/g, '$1/$2')          // comma → slash (European monitors)
+      .replace(/(?<=\d)[oO]|[oO](?=\d)/g, '0')   // O adjacent to digit → 0
       .replace(/(?<=\d)[IlL]|[IlL](?=\d)/g, '1') // l/I/L adjacent to digit → 1
-      .replace(/\bS(\d{1,2})\b/g, '5$1');        // S + 1-2 digits → 5… (OCR artefact)
+      .replace(/\bS(\d{1,2})\b/g, '5$1')          // S + 1-2 digits → 5… (OCR artefact)
+      .replace(/(\d+)\.\d+/g, '$1');              // truncate decimals: 120.5 → 120
   }
 
   /** Validate candidate pair; swap if inverted; return null if equal. */
@@ -61,6 +62,11 @@ export class OCREngine {
     // Pattern 2: generic slash format — pulse OPTIONAL (after P3 to avoid eating HR value)
     const p2 = /(\d{2,3})\s*\/\s*(\d{2,3})(?:\s+(\d{2,3}))?/;
     m = t.match(p2);
+    if (m) { const r = this._validate(+m[1], +m[2], m[3] ? +m[3] : null); if (r) return r; }
+
+    // Pattern 5: space-separated format "120  80  72" (≥2 spaces as delimiter)
+    const p5 = /(\d{2,3})\s{2,}(\d{2,3})(?:\s{2,}(\d{2,3}))?/;
+    m = t.match(p5);
     if (m) { const r = this._validate(+m[1], +m[2], m[3] ? +m[3] : null); if (r) return r; }
 
     // Pattern 4: smarter numeric fallback — range-guarded to avoid noise

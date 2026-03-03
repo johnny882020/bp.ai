@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.bpai.app",
+      "bundleIdentifier": "com.johnny882020.bpai",
       "infoPlist": {
         "NSCameraUsageDescription": "BP.ai uses your camera to scan blood pressure monitor readings.",
         "NSPhotoLibraryUsageDescription": "BP.ai reads photos of your blood pressure monitor to extract readings."
@@ -24,7 +24,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.bpai.app",
+      "package": "com.johnny882020.bpai",
+      "versionCode": 1,
       "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
     },
     "plugins": [

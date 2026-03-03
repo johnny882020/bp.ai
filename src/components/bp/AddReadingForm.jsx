@@ -70,7 +70,7 @@ export default function AddReadingForm({ createMutation, initialValues, isOpen, 
       await createMutation.mutateAsync(payload);
       onOpenChange(false);
     } catch (e) {
-      setError('Failed to save reading. Please try again.');
+      setError(e?.message || 'Failed to save reading. Please try again.');
     }
   };
 

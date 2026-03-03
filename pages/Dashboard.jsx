@@ -1,5 +1,6 @@
 import React from 'react';
-import { Heart, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
+import HeartLogo from '@/components/HeartLogo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useBPReadings } from '@/hooks/useBPReadings';
 
@@ -27,8 +28,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl shadow-lg shadow-blue-600/20">
-              <Heart className="w-6 h-6 text-white" />
+            <div className="p-2.5 bg-black rounded-xl shadow-lg shadow-black/20">
+              <HeartLogo className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">BP.ai</h1>
@@ -67,7 +68,7 @@ export default function Dashboard() {
 
         {/* Health tip */}
         <Alert className="mb-5">
-          <Info className="h-4 w-4 text-blue-600 inline mr-2" />
+          <Info className="h-4 w-4 text-red-600 inline mr-2" />
           <AlertDescription>
             <strong>Healthy range:</strong> Below 120/80 mmHg.
             Measure at the same time each day for consistent tracking.

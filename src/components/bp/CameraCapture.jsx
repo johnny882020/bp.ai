@@ -55,7 +55,7 @@ export default function CameraCapture({ onOpenAddForm }) {
 
           {!image ? (
             <div
-              className="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-red-400 hover:bg-red-50/50 transition-colors"
               onClick={() => fileRef.current?.click()}
             >
               <Camera className="w-10 h-10 text-slate-400 mx-auto mb-3" />
@@ -82,7 +82,7 @@ export default function CameraCapture({ onOpenAddForm }) {
                   </div>
                   <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-blue-500 transition-all duration-200"
+                      className="h-full bg-red-600 transition-all duration-200"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
