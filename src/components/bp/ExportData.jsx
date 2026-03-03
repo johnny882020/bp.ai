@@ -17,7 +17,7 @@ export default function ExportData({ readings }) {
         r.pulse ?? '',
         r.arm ?? '',
         r.position ?? '',
-        `"${(r.notes ?? '').replace(/"/g, '""')}"`,
+        `"${(r.notes ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
       ].join(',');
     });
 
