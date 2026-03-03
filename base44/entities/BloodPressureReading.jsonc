@@ -1,0 +1,38 @@
+{
+  "name": "BloodPressureReading",
+  "type": "object",
+  "properties": {
+    "systolic": {
+      "type": "number",
+      "description": "Systolic pressure (top number) in mmHg"
+    },
+    "diastolic": {
+      "type": "number",
+      "description": "Diastolic pressure (bottom number) in mmHg"
+    },
+    "pulse": {
+      "type": "number",
+      "description": "Heart rate in beats per minute"
+    },
+    "measured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the reading was taken"
+    },
+    "arm": {
+      "type": "string",
+      "enum": ["left", "right"],
+      "description": "Which arm was used"
+    },
+    "position": {
+      "type": "string",
+      "enum": ["sitting", "standing", "lying"],
+      "description": "Body position during measurement"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about the reading"
+    }
+  },
+  "required": ["systolic", "diastolic"]
+}

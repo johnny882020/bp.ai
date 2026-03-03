@@ -1,0 +1,11 @@
+{
+  "name": "bp-ai",
+  "description": "Blood pressure monitoring app with OCR capture, AHA classification, charts, and medication tracking",
+
+  "site": {
+    "installCommand": "npm install",
+    "buildCommand": "npm run build",
+    "serveCommand": "npm run dev",
+    "outputDirectory": "./dist"
+  }
+}

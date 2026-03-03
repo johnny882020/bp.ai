@@ -1,0 +1,30 @@
+{
+  "name": "Medication",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Medication name (e.g. Lisinopril)"
+    },
+    "dosage": {
+      "type": "string",
+      "description": "Dosage amount (e.g. 10mg)"
+    },
+    "frequency": {
+      "type": "string",
+      "enum": ["Daily", "Twice Daily", "Three Times Daily", "Weekly", "As Needed"],
+      "description": "How often the medication is taken"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the medication is currently being taken"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the medication was started"
+    }
+  },
+  "required": ["name"]
+}

@@ -1,0 +1,6 @@
+node_modules
+dist
+.base44
+.app.jsonc
+.env
+.env.local
