@@ -5,3 +5,4 @@ dist
 .env
 .env.local
 .mcp.json
+mobile/google-play-key.json

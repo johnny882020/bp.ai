@@ -1,7 +1,7 @@
 import React from 'react';
 import { useBPReadings } from '@/hooks/useBPReadings';
 import ExportData from '@/components/bp/ExportData';
-import { Info, BookOpen, AlertTriangle } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, LogOut } from 'lucide-react';
 
 const CATEGORIES = [
   { name: 'Normal',              range: '< 120/80 mmHg',      color: '#16a34a', bg: '#dcfce7', desc: 'Maintain healthy habits.' },
@@ -11,7 +11,7 @@ const CATEGORIES = [
   { name: 'Hypertensive Crisis', range: '> 180 / > 120 mmHg', color: '#991b1b', bg: '#fecaca', desc: '⚠️ Seek emergency care immediately.' },
 ];
 
-export default function Settings() {
+export default function Settings({ onLogout }) {
   const { readings } = useBPReadings();
 
   return (
@@ -62,6 +62,24 @@ export default function Settings() {
           professional for medical advice.
         </p>
       </div>
+
+      {/* Logout */}
+      {onLogout && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <LogOut className="w-4 h-4" /> Account
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Sign out of BP.ai on this device.
+          </p>
+          <button
+            onClick={onLogout}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+          >
+            <LogOut className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
+      )}
 
       {/* Version */}
       <p className="text-xs text-center text-slate-400">BP.ai v1.0 · Powered by Base44</p>
