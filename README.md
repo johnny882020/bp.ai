@@ -9,10 +9,9 @@ A personal blood pressure tracking web app with AI-powered photo scanning, medic
 ## Features
 
 - **Track readings** — Manual entry or camera scan of your BP monitor display
-- **AI scanning** — Claude Vision API for highly accurate photo OCR (optional, uses your own API key)
-- **Tesseract fallback** — Built-in OCR for scanning without an API key
+- **AI scanning** — DocuPipe OCR for accurate photo extraction; Tesseract.js fallback built-in
 - **AHA classification** — Color-coded categories (Normal → Hypertensive Crisis)
-- **Medications** — Track current and past BP medications
+- **Medications** — Track current and past BP medications (stored locally per device)
 - **Charts** — Visualize trends over time with recharts
 - **CSV export** — Download all readings for your doctor
 - **Authentication** — Secure per-user data via Base44
@@ -27,10 +26,11 @@ A personal blood pressure tracking web app with AI-powered photo scanning, medic
 | Styling | Tailwind CSS + shadcn/ui |
 | Data fetching | @tanstack/react-query v5 |
 | Backend / Auth | Base44 (BaaS) |
-| OCR primary | Claude Vision API (Anthropic) |
-| OCR fallback | Tesseract.js v5 (WebAssembly) |
+| Server | Express 4 (Node.js) |
+| OCR primary | DocuPipe AI (server-side proxy) |
+| OCR fallback | Tesseract.js v5 (WebAssembly, in-browser) |
 | Charts | recharts |
-| Deployment | Render (static site) |
+| Deployment | Render (Node.js web service) |
 
 ---
 
@@ -38,10 +38,11 @@ A personal blood pressure tracking web app with AI-powered photo scanning, medic
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5173 (frontend dev server)
 npm test           # run all tests (118 passing)
 npm run coverage   # coverage report
-npm run build      # production build
+npm run build      # production build → dist/
+node server.js     # serve production build on :3000
 ```
 
 ---
@@ -50,19 +51,21 @@ npm run build      # production build
 
 ```
 bp-ai/
-├── pages/               # Top-level route pages
-│   ├── Dashboard.jsx    # Main dashboard (readings, chart, stats)
-│   ├── Readings.jsx     # Full readings list
-│   ├── Charts.jsx       # Trend charts
-│   ├── Medications.jsx  # Medication tracker
-│   └── Settings.jsx     # Export, API key, AHA reference
+├── server.js                    # Express backend — /api/ocr proxy + static serving
+├── render.yaml                  # Render deployment config (Node.js web service)
+├── pages/                       # Top-level route pages
+│   ├── Dashboard.jsx            # Main dashboard (readings, chart, stats)
+│   ├── Readings.jsx             # Full readings list
+│   ├── Charts.jsx               # Trend charts
+│   ├── Medications.jsx          # Medication tracker
+│   └── Settings.jsx             # Export, AHA reference, account
 ├── src/
 │   ├── api/
 │   │   └── base44Client.js      # Base44 SDK client + auth export
 │   ├── components/bp/
 │   │   ├── AddReadingForm.jsx   # Manual entry dialog
 │   │   ├── BPChart.jsx          # recharts line chart
-│   │   ├── CameraCapture.jsx    # Photo OCR (Claude Vision / Tesseract)
+│   │   ├── CameraCapture.jsx    # Photo OCR (DocuPipe → Tesseract fallback)
 │   │   ├── ExportData.jsx       # CSV download
 │   │   ├── MedicationsPanel.jsx # Medication CRUD
 │   │   ├── ReadingsList.jsx     # Paginated readings table
@@ -73,11 +76,11 @@ bp-ai/
 │   ├── hooks/
 │   │   ├── useAuth.js           # Auth state (login/register/OTP/logout)
 │   │   ├── useBPReadings.js     # BP readings CRUD + React Query
-│   │   └── useMedications.js    # Medications CRUD + React Query
+│   │   └── useMedications.js    # Medications CRUD (localStorage)
 │   ├── lib/
 │   │   ├── bpCategories.js      # AHA classification + validation
-│   │   ├── claudeVisionOcr.js   # Claude Vision API OCR
-│   │   └── ocrEngine.js         # Tesseract OCR + preprocessing
+│   │   ├── docupipeOcr.js       # DocuPipe client (calls /api/ocr)
+│   │   └── ocrEngine.js         # Tesseract OCR + preprocessing + regex patterns
 │   ├── pages/
 │   │   └── LoginPage.jsx        # Login / Register / OTP verification
 │   └── __tests__/
@@ -86,7 +89,6 @@ bp-ai/
 │       ├── sanity.test.js       # 5 sanity tests (ST-1..ST-5)
 │       └── vv.test.js           # 55 V&V tests (V&V-1..V&V-10)
 ├── mobile/                      # Expo React Native app (see mobile/README.md)
-├── render.yaml                  # Render deployment config + security headers
 └── README.md
 ```
 
@@ -94,18 +96,27 @@ bp-ai/
 
 ## Camera Scanning
 
-### With Anthropic API key (recommended)
-1. Go to **Settings → Enhanced Scanning**
-2. Paste your API key from [console.anthropic.com](https://console.anthropic.com)
-3. Tap **Scan Monitor** — Claude AI reads the photo directly
+The scan flow has three steps: **select photo → extract → confirm before saving**.
 
-### Without API key (built-in)
-Tesseract.js OCR runs in-browser. Works for most clear photos; struggles with glare/low contrast.
+After extraction the app shows the parsed systolic / diastolic / pulse values prominently so you can verify them before they enter your history. Tap **Retake** if anything looks wrong.
 
-**Tips for best results:**
-- Hold phone parallel to the monitor display
-- Ensure the room is well-lit
-- Avoid glare on the LCD screen
+### DocuPipe OCR (primary — requires operator setup)
+
+DocuPipe runs server-side via the `/api/ocr` Express endpoint.
+
+To activate it, set the `DOCUPIPE_API_KEY` environment variable in your Render dashboard:
+
+> Render Dashboard → bp-ai → Environment → Add `DOCUPIPE_API_KEY`
+
+Get a free API key at https://docupipe.readme.io (300 free credits on signup, no credit card required).
+
+### Tesseract.js (fallback — always available)
+
+If DocuPipe is not configured or returns an error, the app automatically falls back to Tesseract.js running entirely in the browser via WebAssembly. No API key or network call required.
+
+**Tips for best scan results:**
+- Hold the phone parallel to the monitor display
+- Ensure the room is well-lit — avoid glare on the LCD screen
 - Make sure all digits are in frame and in focus
 
 ---
@@ -113,10 +124,10 @@ Tesseract.js OCR runs in-browser. Works for most clear photos; struggles with gl
 ## Authentication
 
 BP.ai uses Base44 for user authentication. On first visit:
-1. Click **Create Account** and enter email + password
+1. Click **Create Account** and enter your email + password
 2. Check your email for a 6-digit verification code
 3. Enter the code in the verification screen
-4. Sign in — your data is private and per-user
+4. Sign in — your readings are private and per-user
 
 ---
 
@@ -134,9 +145,18 @@ BP.ai uses Base44 for user authentication. On first visit:
 
 ## Deployment
 
-Deployed as a static site on Render. Automatic deploys on push to `master`.
+Runs as a Node.js web service on Render. Automatic deploys on push to `master`.
 
-**Security headers:** CSP, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy, Permissions-Policy (camera self only) — all configured in `render.yaml`.
+The Express server (`server.js`) serves the Vite production build from `dist/` and exposes the `/api/ocr` DocuPipe proxy endpoint.
+
+**Security headers** (set by Express middleware): CSP, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy, Permissions-Policy (camera self only).
+
+**Environment variables:**
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DOCUPIPE_API_KEY` | Optional | Enables DocuPipe OCR; falls back to Tesseract if absent |
+| `PORT` | Auto-set by Render | Server listen port |
 
 ---
 
