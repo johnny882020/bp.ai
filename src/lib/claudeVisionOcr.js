@@ -40,13 +40,19 @@ export async function extractBPWithClaude(base64Image, mediaType, apiKey) {
             {
               type: 'text',
               text:
-                'This is a photo of a home blood pressure monitor display. ' +
-                'Extract the blood pressure reading and pulse rate shown. ' +
-                'Reply with ONLY the numbers in one of these formats:\n' +
-                '  - "120/80 72"  (systolic/diastolic pulse)\n' +
-                '  - "120/80"     (if no pulse is shown)\n' +
-                'Do not include units, labels, or any other text. ' +
-                'If you cannot clearly read the numbers, reply with exactly: UNREADABLE',
+                'You are reading a home blood pressure monitor display.\n\n' +
+                'Home blood pressure monitors show THREE values:\n' +
+                '• SYSTOLIC — the LARGER number, shown on top (typically 90–200)\n' +
+                '• DIASTOLIC — the SMALLER number, shown below systolic (typically 50–120)\n' +
+                '• PULSE / HEART RATE — shown separately, often smaller font (typically 40–120)\n\n' +
+                'IGNORE completely: clock time (e.g. 10:30), date (e.g. 03/04 or 2026), ' +
+                'memory indicator (M1 M2 or a lone digit 1 or 2), user number, battery icon, ' +
+                'mmHg label, or any symbol that is not a blood pressure value.\n\n' +
+                'Reply with ONLY the numbers in this exact format — nothing else:\n' +
+                '  120/80 72   (systolic slash diastolic space pulse)\n' +
+                '  120/80      (if pulse is not visible)\n\n' +
+                'If the display is too blurry, dark, glared, or otherwise unreadable, ' +
+                'reply with exactly one word: UNREADABLE',
             },
           ],
         },

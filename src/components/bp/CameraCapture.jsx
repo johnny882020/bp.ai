@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, RotateCcw, Zap } from 'lucide-react';
+import { Camera, RotateCcw, Zap, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ocrEngine } from '@/lib/ocrEngine';
@@ -11,7 +11,8 @@ export default function CameraCapture({ onOpenAddForm }) {
   const [progress,   setProgress]   = useState(0);
   const [processing, setProcessing] = useState(false);
   const [error,      setError]      = useState('');
-  const [usingAI,    setUsingAI]    = useState(false);  // true while Claude Vision is running
+  const [usingAI,    setUsingAI]    = useState(false);
+  const [preview,    setPreview]    = useState(null);   // { systolic, diastolic, pulse } after extraction
   const fileRef = useRef(null);
 
   const hasApiKey = () => !!localStorage.getItem('bp_anthropic_key');
@@ -20,6 +21,7 @@ export default function CameraCapture({ onOpenAddForm }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setError('');
+    setPreview(null);
     const reader = new FileReader();
     reader.onload = (ev) => setImage(ev.target.result);
     reader.readAsDataURL(file);
@@ -30,6 +32,7 @@ export default function CameraCapture({ onOpenAddForm }) {
     setProcessing(true);
     setProgress(0);
     setError('');
+    setPreview(null);
     setUsingAI(false);
 
     try {
@@ -43,7 +46,7 @@ export default function CameraCapture({ onOpenAddForm }) {
         const mediaType = image.split(';')[0].replace('data:', '') || 'image/jpeg';
         const text      = await extractBPWithClaude(base64, mediaType, apiKey);
 
-        if (text.toUpperCase() === 'UNREADABLE') {
+        if (text.toUpperCase().includes('UNREADABLE')) {
           throw new Error(
             'Monitor display could not be read. Ensure good lighting, ' +
             'hold the camera steady, and make sure the display is in focus.'
@@ -53,7 +56,8 @@ export default function CameraCapture({ onOpenAddForm }) {
         result = ocrEngine.extractBPReading(text);
         if (!result) {
           throw new Error(
-            'Could not parse the reading from the image. Please try manual entry.'
+            `Extracted "${text}" but could not parse it as a BP reading. ` +
+            'Please retake the photo or use manual entry.'
           );
         }
       } else {
@@ -61,9 +65,8 @@ export default function CameraCapture({ onOpenAddForm }) {
         result = await ocrEngine.processImage(image, setProgress);
       }
 
-      setOpen(false);
-      setImage(null);
-      onOpenAddForm(result);
+      // Show confirmation preview instead of immediately submitting
+      setPreview(result);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -72,7 +75,16 @@ export default function CameraCapture({ onOpenAddForm }) {
     }
   };
 
-  const reset = () => { setImage(null); setError(''); setProgress(0); };
+  const handleConfirm = () => {
+    const result = preview;
+    setOpen(false);
+    setImage(null);
+    setPreview(null);
+    setError('');
+    onOpenAddForm(result);
+  };
+
+  const reset = () => { setImage(null); setError(''); setProgress(0); setPreview(null); };
 
   return (
     <>
@@ -87,14 +99,15 @@ export default function CameraCapture({ onOpenAddForm }) {
             <DialogTitle>Scan BP Monitor</DialogTitle>
           </DialogHeader>
 
-          {!image ? (
+          {/* Step 1: select photo */}
+          {!image && (
             <div
               className="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-red-400 hover:bg-red-50/50 transition-colors"
               onClick={() => fileRef.current?.click()}
             >
               <Camera className="w-10 h-10 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 text-sm mb-1">Take or select a photo of your monitor display</p>
-              <p className="text-xs text-gray-400 mb-3">The reading must be clearly visible</p>
+              <p className="text-xs text-gray-400 mb-3">Hold the camera parallel — all digits must be in frame</p>
               {!hasApiKey() && (
                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2">
                   For best accuracy, add your Anthropic API key in{' '}
@@ -115,9 +128,12 @@ export default function CameraCapture({ onOpenAddForm }) {
                 className="hidden"
               />
             </div>
-          ) : (
+          )}
+
+          {/* Step 2: review photo + extract */}
+          {image && !preview && (
             <div className="space-y-4">
-              <img src={image} alt="BP monitor" className="w-full rounded-lg border border-gray-200" />
+              <img src={image} alt="BP monitor" className="w-full rounded-lg border border-gray-200 max-h-64 object-contain" />
 
               {processing && (
                 <div>
@@ -144,6 +160,51 @@ export default function CameraCapture({ onOpenAddForm }) {
                 </Button>
                 <Button className="flex-1" onClick={handleExtract} disabled={processing}>
                   {processing ? 'Processing…' : 'Extract Reading'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: confirm extracted values */}
+          {preview && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+                <CheckCircle2 className="w-4 h-4" />
+                Reading extracted — please verify before saving
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Systolic</p>
+                    <p className="text-3xl font-bold text-slate-900">{preview.systolic}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">mmHg</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Diastolic</p>
+                    <p className="text-3xl font-bold text-slate-900">{preview.diastolic}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">mmHg</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Pulse</p>
+                    <p className={`text-3xl font-bold ${preview.pulse ? 'text-slate-900' : 'text-slate-400'}`}>
+                      {preview.pulse ?? '—'}
+                    </p>
+                    {preview.pulse && <p className="text-xs text-slate-400 mt-0.5">bpm</p>}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-500 text-center">
+                If these numbers look wrong, retake the photo or use manual entry.
+              </p>
+
+              <div className="flex gap-3">
+                <Button variant="secondary" className="flex-1" onClick={reset}>
+                  <RotateCcw className="w-4 h-4 mr-1" /> Retake
+                </Button>
+                <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={handleConfirm}>
+                  Use This Reading
                 </Button>
               </div>
             </div>

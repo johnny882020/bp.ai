@@ -20,8 +20,8 @@ export class OCREngine {
           onProgress(Math.round(m.progress * 100));
         }
       },
-      // Restrict recognized characters to digits and common BP separators
-      tessedit_char_whitelist: '0123456789/:() \n',
+      // Allow digits, common separators, and letters so SYS/DIA/BP/HR labels are readable
+      tessedit_char_whitelist: '0123456789/:() \nABCDEFGHIJKLMNOPQRSTUVWXYZ',
       // PSM 6 = uniform block of text (best for BP displays)
       tessedit_pageseg_mode: '6',
       // Override DPI to 150 — BP monitor photos are typically high-DPI
